@@ -1,0 +1,41 @@
+[package]
+name = "app"
+version = "0.1.0"
+description = "A Tauri App"
+authors = ["you"]
+license = ""
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.1", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.11.1", features = [] }
+tauri-plugin-log = "2"
+
+# src-tauri/Cargo.toml [dependencies]
+
+# Tauri official plugins
+tauri-plugin-shell = "2"          # Run shell commands / open URLs
+tauri-plugin-fs = "2"             # File system
+tauri-plugin-dialog = "2"         # Native file picker
+tauri-plugin-store = "2"          # Persistent key-value storage
+tauri-plugin-http = "2"           # HTTP client
+
+# Hardware / serial
+serialport = "4"                  # Serial ports (drones, sensors)
+sysinfo = "0.30"                  # CPU, memory, temps
+
+# Async + data
+tokio = { version = "1", features = ["full"] }
