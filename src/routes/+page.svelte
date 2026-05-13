@@ -3,7 +3,7 @@
   let result = $state('');
 </script>
 
-<button onclick={() => invoke<string>('greet', { name: 'World' }).then(r => result = r)}>
+<button onclick={() => invoke<string>('greet', { name: 'Bob' }).then(r => result = r)}>
   Call Rust
 </button>
 <p>{result}</p>
