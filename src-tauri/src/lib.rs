@@ -1,4 +1,15 @@
 use tauri_plugin_dialog::DialogExt;
+use walkdir::WalkDir;
+
+use std::path::Path;
+
+use serde::Serialize;
+
+#[derive(Serialize)]
+struct FileEntry {
+    name: String,
+    full_path: String,
+}
 
 #[tauri::command]
 async fn open_folder(app: tauri::AppHandle) -> Option<String> {
@@ -11,22 +22,34 @@ async fn open_folder(app: tauri::AppHandle) -> Option<String> {
 }
 
 #[tauri::command]
-fn read_folder(path: String) -> Result<Vec<String>, String> {
-    let entries = std::fs::read_dir(&path)
-        .map_err(|e| e.to_string())?;
+fn read_folder(path: String) -> Result<Vec<FileEntry>, String> {
+    let root = Path::new(&path);
 
-    Ok(entries
+    let files: Vec<FileEntry> = WalkDir::new(root)
+        .into_iter()
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.path().is_file())
         .filter_map(|entry| {
-            let entry = entry.ok()?;
-            let path = entry.path();
+            let full_path = entry
+                .path()
+                .to_string_lossy()
+                .to_string();
 
-            if path.is_file() {
-                Some(path.to_string_lossy().to_string())
-            } else {
-                None
-            }
+            let relative_path = entry
+                .path()
+                .strip_prefix(root)
+                .ok()?
+                .to_string_lossy()
+                .to_string();
+
+            Some(FileEntry {
+                name: relative_path,
+                full_path,
+            })
         })
-        .collect())
+        .collect();
+
+    Ok(files)
 }
 
 #[tauri::command]
