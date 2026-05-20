@@ -1,3 +1,9 @@
+// TODO(filesystem): Initialize notify watcher service on app startup.
+// TODO(workspace): Initialize workspace state and configuration loader.
+// TODO(git): Lazy-load git service on first repository detection.
+// TODO(search): Initialize background indexing service.
+// TODO(app): Set up error logging and telemetry.
+
 use tauri_plugin_dialog::DialogExt;
 use walkdir::WalkDir;
 
