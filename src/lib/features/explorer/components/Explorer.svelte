@@ -3,10 +3,17 @@
 <!-- TODO(explorer): Abstract Tauri invocations through filesystem layer. -->
 <script lang="ts">
 	import { invoke } from '@tauri-apps/api/core';
-	import * as ScrollArea from '$lib/components/ui/scroll-area';
 	import { Button } from '$lib/components/ui/button';
 	import VirtualFileTree from '$lib/features/explorer/components/VirtualTree.svelte';
-	import { ListChevronsUpDown } from 'lucide-svelte';
+	import {
+		ListChevronsUpDown,
+		ArrowDownAZ,
+		ArrowUpZA,
+		CalendarArrowDown,
+		CalendarArrowUp
+	} from 'lucide-svelte';
+	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
+	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 
 	type FileEntry = {
 		name: string;
@@ -144,16 +151,74 @@
 		content = await invoke<string>('read_file', { path });
 	}
 </script>
-
-<div class="flex h-screen">
-	<div class="flex w-80 flex-col border-r">
-		<div class="flex items-center gap-2 border-b p-2">
-			<Button variant="default" onclick={openFolder}>Open Folder</Button>
-			<Button variant="outline" size="icon" onclick={toggleAll} aria-label="Toggle all folders">
-				<ListChevronsUpDown class="h-4 w-4" />
-			</Button>
+<Sidebar.Root>
+	<Sidebar.Header class="border-b px-3 py-2">
+		<div class="mb-2 flex items-center justify-between">
+			<span class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+				Explorer
+			</span>
+			<Tooltip.Root>
+				<Tooltip.Trigger>
+					<Button variant="ghost" size="icon" class="h-7 w-7" onclick={toggleAll}>
+						<ListChevronsUpDown class="h-3.5 w-3.5" />
+					</Button>
+				</Tooltip.Trigger>
+				<Tooltip.Content>Toggle all folders</Tooltip.Content>
+			</Tooltip.Root>
 		</div>
 
+		<Button variant="default" class="w-full" onclick={openFolder}>
+			Open Folder
+		</Button>
+
+		<div class="mt-2 flex items-center gap-0.5">
+			<span class="mr-1 text-xs text-muted-foreground">Sort</span>
+
+			<Tooltip.Root>
+				<Tooltip.Trigger>
+					<Button variant="ghost" size="icon" class="h-7 w-7">
+						<ArrowDownAZ class="h-3.5 w-3.5" />
+					</Button>
+				</Tooltip.Trigger>
+				<Tooltip.Content>Sort A-Z</Tooltip.Content>
+			</Tooltip.Root>
+
+			<Tooltip.Root>
+				<Tooltip.Trigger>
+					<Button variant="ghost" size="icon" class="h-7 w-7">
+						<ArrowUpZA class="h-3.5 w-3.5" />
+					</Button>
+				</Tooltip.Trigger>
+				<Tooltip.Content>Sort Z-A</Tooltip.Content>
+			</Tooltip.Root>
+
+			<div class="mx-1 h-4 w-px bg-border" />
+
+			<span class="mr-1 text-xs text-muted-foreground">Date</span>
+
+			<Tooltip.Root>
+				<Tooltip.Trigger>
+					<Button variant="ghost" size="icon" class="h-7 w-7">
+						<CalendarArrowDown class="h-3.5 w-3.5" />
+					</Button>
+				</Tooltip.Trigger>
+				<Tooltip.Content>Newest first</Tooltip.Content>
+			</Tooltip.Root>
+
+			<Tooltip.Root>
+				<Tooltip.Trigger>
+					<Button variant="ghost" size="icon" class="h-7 w-7">
+						<CalendarArrowUp class="h-3.5 w-3.5" />
+					</Button>
+				</Tooltip.Trigger>
+				<Tooltip.Content>Oldest first</Tooltip.Content>
+			</Tooltip.Root>
+		</div>
+	</Sidebar.Header>
+
+	<Sidebar.Content>
 		<VirtualFileTree rows={flatRows} {loadFile} {toggleFolder} />
-	</div>
-</div>
+	</Sidebar.Content>
+
+	<Sidebar.Footer />
+</Sidebar.Root>
