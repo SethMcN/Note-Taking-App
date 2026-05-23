@@ -50,9 +50,20 @@ fn read_folder(path: String) -> Result<Vec<FileEntry>, String> {
 
             let relative_path = normalize_path(entry.path().strip_prefix(root).ok()?);
 
+            let metadata = entry.metadata().ok()?;
+
             Some(FileEntry {
                 name: relative_path,
+
                 full_path,
+
+                is_dir: metadata.is_dir(),
+
+                size: metadata.len(),
+
+                created: None,
+                modified: None,
+                accessed: None,
             })
         })
         .collect();
