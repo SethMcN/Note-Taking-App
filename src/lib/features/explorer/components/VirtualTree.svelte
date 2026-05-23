@@ -1,3 +1,5 @@
+<!-- TODO(explorer): Consolidate viewport height, scroll offset, and visible row calculations into derived store. -->
+<!-- TODO(explorer): Use centralized virtualization utilities for ROW_HEIGHT and OVERSCAN constants. -->
 <script lang="ts">
 	import { File, Folder, FolderOpen, ChevronRight, ChevronDown } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
