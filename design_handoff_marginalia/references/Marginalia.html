@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Marginalia — design canvas</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="stylesheet" href="marginalia.css" />
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden;
+    font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+    color: #29261b; background: #f0eee9; }
+  #root { width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="marginalia-shell.jsx"></script>
+<script type="text/babel" src="marginalia-overlays.jsx"></script>
+<script type="text/babel" src="marginalia-settings.jsx"></script>
+<script type="text/babel" src="marginalia-layers.jsx"></script>
+<script type="text/babel" src="marginalia-system.jsx"></script>
+
+<script type="text/babel">
+
+// ── Tweak defaults (persisted) ─────────────────────────────────────
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accent": "terracotta",
+  "fontFamily": "mono",
+  "editorWidth": 560,
+  "sidebarDensity": "compact",
+  "bgWarmth": "paper"
+}/*EDITMODE-END*/;
+
+const ACCENT_MAP = {
+  terracotta: 'oklch(0.62 0.13 35)',
+  slate:      'oklch(0.55 0.07 250)',
+  sage:       'oklch(0.58 0.07 150)',
+  plum:       'oklch(0.55 0.11 320)',
+  ink:        'oklch(0.32 0.01 80)',
+};
+const ACCENT_HUE = {
+  terracotta: 35, slate: 250, sage: 150, plum: 320, ink: 80,
+};
+
+const FONT_MAP = {
+  serif: "'Newsreader', Charter, Georgia, serif",
+  sans:  "'Geist', ui-sans-serif, system-ui, sans-serif",
+  mono:  "'Geist Mono', ui-monospace, monospace",
+};
+
+const WARMTH_MAP = {
+  // [light bg, light bg-2, light bg-3, light bg-titlebar, dark bg, dark bg-2]
+  paper:   { light: ['oklch(0.985 0.004 80)', 'oklch(0.975 0.004 80)', 'oklch(0.96 0.004 80)',  'oklch(0.97 0.004 80)'],
+             dark:  ['oklch(0.18 0.008 60)',  'oklch(0.165 0.008 60)', 'oklch(0.22 0.008 60)',  'oklch(0.21 0.008 60)'] },
+  neutral: { light: ['oklch(0.985 0.001 250)','oklch(0.975 0.001 250)','oklch(0.96 0.001 250)', 'oklch(0.97 0.001 250)'],
+             dark:  ['oklch(0.18 0.006 250)', 'oklch(0.165 0.006 250)','oklch(0.22 0.006 250)', 'oklch(0.21 0.006 250)'] },
+  arctic:  { light: ['oklch(0.985 0.006 240)','oklch(0.975 0.006 240)','oklch(0.96 0.006 240)', 'oklch(0.97 0.006 240)'],
+             dark:  ['oklch(0.18 0.012 245)', 'oklch(0.165 0.012 245)','oklch(0.22 0.012 245)', 'oklch(0.21 0.012 245)'] },
+};
+
+// Apply tweaks globally as CSS variables on :root.
+// Theme-specific tokens (bg/fg per theme) are emitted as a separate <style> tag
+// so [data-theme="light"] vs [data-theme="dark"] can both be present on the canvas.
+function useApplyTweaks(t) {
+  React.useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--accent', ACCENT_MAP[t.accent]);
+    root.style.setProperty('--accent-soft', ACCENT_MAP[t.accent].replace(')', ' / 0.12)'));
+    root.style.setProperty('--accent-line', ACCENT_MAP[t.accent].replace(')', ' / 0.35)'));
+    root.style.setProperty('--font-editor', FONT_MAP[t.fontFamily]);
+    root.style.setProperty('--editor-width', t.editorWidth + 'px');
+
+    const rowH = t.sidebarDensity === 'compact' ? 22 : t.sidebarDensity === 'comfy' ? 30 : 26;
+    root.style.setProperty('--sidebar-row-h', rowH + 'px');
+
+    // theme bg overrides
+    const w = WARMTH_MAP[t.bgWarmth];
+    const css = `
+      [data-theme="light"]{
+        --bg:${w.light[0]};--bg-2:${w.light[1]};--bg-3:${w.light[2]};--bg-titlebar:${w.light[3]};
+      }
+      [data-theme="dark"]{
+        --bg:${w.dark[0]};--bg-2:${w.dark[1]};--bg-3:${w.dark[2]};--bg-titlebar:${w.dark[3]};
+      }
+    `;
+    let el = document.getElementById('warmth-style');
+    if (!el) { el = document.createElement('style'); el.id = 'warmth-style'; document.head.appendChild(el); }
+    el.textContent = css;
+  }, [t.accent, t.fontFamily, t.editorWidth, t.sidebarDensity, t.bgWarmth]);
+}
+
+// ── AppFrame: window-chrome + sidebar + editor scaffold ─────────────
+// `layer` controls which UI regions are visible — drives the progressive
+// disclosure system. Default L3 (everything on); L0 is the bare editor.
+function AppFrame({
+  theme = 'light',
+  file = 'On marginalia.md',
+  pathCrumb = ['vault', 'philosophy'],
+  density = 'regular',
+  dirty = true,
+  showCaret = true,
+  currentLine = 4,
+  focusMode = false,
+  emptyTree = false,
+  splitPane = false,
+  layer = { sidebar: true, tabs: true, statusBar: true, spine: true, margins: true },
+  children,    // optional overlay layer
+}) {
+  const classes = ['card-frame', 'app'];
+  if (focusMode) classes.push('focus-mode');
+  if (!layer.sidebar) classes.push('no-sidebar');
+  if (!layer.tabs) classes.push('no-tabs');
+  if (!layer.statusBar) classes.push('no-statusbar');
+  // "calm" = no sidebar AND no tabs AND no status bar — pure writing surface.
+  const calm = !layer.sidebar && !layer.tabs && !layer.statusBar;
+  if (calm) classes.push('calm');
+
+  return (
+    <div className={classes.join(' ')} data-theme={theme}>
+      <Titlebar path={calm ? [] : pathCrumb} file={file} dirty={dirty} />
+      <div className="workspace">
+        <Sidebar density={density} empty={emptyTree} />
+        <div className="editor-wrap">
+          <Tabs tabs={[
+            { name: 'On marginalia.md', dirty: true, active: true },
+            { name: 'Attention as currency.md', active: false },
+            { name: '2026-05-24.md', active: false },
+          ]} />
+          {splitPane
+            ? <SplitEditor showCaret={showCaret} currentLine={currentLine} />
+            : <SingleEditor showSpine={layer.spine} showMargins={layer.margins}
+                            showCaret={showCaret} currentLine={currentLine}
+                            focusMode={focusMode} />}
+          <StatusBar />
+        </div>
+      </div>
+      {children /* overlay layer */}
+    </div>
+  );
+}
+
+function SingleEditor({ showSpine, showMargins, showCaret, currentLine, focusMode }) {
+  const marginNotes = [
+    { author: '@past-me', top:  118, text: 'Cf. Sontag — "against interpretation"' },
+    { author: '@todo', kind: 'todo', top: 252, text: 'expand the metaphor — gutter vs margin' },
+    { author: '@cite', top:  430, text: 'Manguel · A History of Reading p. 86' },
+    { author: '@past-me', top: 612, text: 'good line — keep' },
+  ];
+  const spineItems = [
+    { lvl: 'h1', active: false },
+    { lvl: 'h2', active: false },
+    { lvl: 'h2', active: true },
+    { lvl: 'h3', active: false },
+  ];
+  return (
+    <div className="editor-scroll">
+      {showSpine && !focusMode && <Spine items={spineItems} />}
+      <div className={`editor-col ${showMargins && !focusMode ? '' : 'no-margins'}`}>
+        <EditorBody showCaret={showCaret} currentLine={currentLine} focusMode={focusMode} />
+        {showMargins && !focusMode && <MarginRail notes={marginNotes} />}
+      </div>
+      {focusMode && (
+        <div className="focus-overlay-hud">
+          <span><span className="kbd">⌘.</span>exit focus</span>
+          <span><span className="kbd">⌘↵</span>save &amp; close</span>
+          <span style={{ marginLeft: 16, color: 'var(--fg-4)' }}>2 sessions today · 47 min</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SplitEditor({ showCaret, currentLine }) {
+  return (
+    <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
+      {/* left pane */}
+      <div className="editor-scroll" style={{ flex: 1, borderRight: '1px solid var(--line)' }}>
+        <div className="editor-col" style={{ padding: '40px 32px 100px' }}>
+          <EditorBody showCaret={showCaret} currentLine={currentLine} />
+          <MarginRail notes={[
+            { author: '@past-me', top: 118, text: 'Cf. Sontag — "against interpretation"' },
+            { author: '@todo', kind: 'todo', top: 252, text: 'expand metaphor — gutter vs margin' },
+            { author: '@cite', top: 430, text: 'Manguel · p. 86' },
+          ]} />
+        </div>
+      </div>
+      {/* right pane: backlinks + outline */}
+      <div style={{ width: 360, flexShrink: 0, background: 'var(--bg-2)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{
+          height: 32, flex: '0 0 32px',
+          display: 'flex', alignItems: 'center',
+          padding: '0 14px', borderBottom: '1px solid var(--line)',
+          fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)',
+          textTransform: 'uppercase', letterSpacing: '0.06em',
+          gap: 12,
+        }}>
+          <span style={{ color: 'var(--fg)', fontWeight: 600 }}>Backlinks</span>
+          <span style={{ color: 'var(--fg-4)' }}>7</span>
+          <span style={{ marginLeft: 'auto' }}>Outline</span>
+        </div>
+        <div style={{ overflow: 'auto', padding: '16px 18px' }}>
+          {[
+            { title: 'On the gloss', snip: 'see also [[On marginalia]] for the longer argument' },
+            { title: 'Reading log — 2026', snip: 'finished Manguel today; [[On marginalia]] needs another pass' },
+            { title: 'Attention as currency', snip: '[[On marginalia]] is the companion piece — the small frame' },
+            { title: 'daily/2026-05-22', snip: 'started the [[On marginalia]] draft this morning' },
+          ].map((b, i) => (
+            <div key={i} style={{ padding: '10px 0', borderBottom: i < 3 ? '1px solid var(--line)' : 'none', cursor: 'pointer' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 500, color: 'var(--fg)', marginBottom: 4 }}>
+                {b.title}
+              </div>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: 10.5,
+                color: 'var(--fg-2)', lineHeight: 1.55,
+              }}>
+                {b.snip.split(/(\[\[On marginalia\]\])/g).map((p, j) =>
+                  p.startsWith('[[') ? <mark key={j} style={{ background: 'var(--accent-soft)', color: 'var(--accent)', fontWeight: 500 }}>{p}</mark> : p
+                )}
+              </div>
+            </div>
+          ))}
+
+          <div style={{ marginTop: 22 }}>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: 10,
+              color: 'var(--fg-4)', textTransform: 'uppercase',
+              letterSpacing: '0.08em', marginBottom: 10,
+            }}>Outline</div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 13, lineHeight: 1.6, color: 'var(--fg-2)' }}>
+              <div style={{ color: 'var(--fg)', fontWeight: 500 }}>On marginalia</div>
+              <div style={{ paddingLeft: 12 }}>The empty margin is hostile</div>
+              <div style={{ paddingLeft: 12, color: 'var(--accent)' }}>A vocabulary <span style={{ color: 'var(--fg-4)', fontFamily: 'var(--font-mono)', fontSize: 11, marginLeft: 4 }}>·</span></div>
+              <div style={{ paddingLeft: 24, fontSize: 12 }}>A small example</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Settings frame (titlebar + nav + main) ──────────────────────────
+function SettingsFrame({ theme = 'light', view = 'layers' }) {
+  return (
+    <div className="card-frame app" data-theme={theme}>
+      <Titlebar path={['marginalia']} file="Settings" dirty={false} />
+      <div className="settings-shell">
+        <SettingsNav active={view} />
+        {view === 'layers' && <SettingsLayers current="L2" />}
+        {view === 'appearance' && <SettingsAppearance />}
+        {view === 'keymap' && <SettingsKeymap />}
+        {view === 'overview' && <SettingsOverview />}
+      </div>
+    </div>
+  );
+}
+
+// ── App ──────────────────────────────────────────────────────────────
+function App() {
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  useApplyTweaks(t);
+
+  return (
+    <>
+      <DesignCanvas>
+
+        <DCSection id="layers" title="Layers"
+          subtitle="Marginalia grows with you. The default is just an editor; every UI region is opt-in.">
+
+          <DCArtboard id="l0" label="L0 · Calm — just write" width={1000} height={720}>
+            <AppFrame theme="light"
+              layer={{ sidebar: false, tabs: false, statusBar: false, spine: false, margins: false }} />
+          </DCArtboard>
+
+          <DCArtboard id="l1" label="L1 · Files — add the sidebar" width={1100} height={720}>
+            <AppFrame theme="light"
+              layer={{ sidebar: true, tabs: false, statusBar: false, spine: false, margins: false }} />
+          </DCArtboard>
+
+          <DCArtboard id="l2" label="L2 · Worktable — tabs &amp; status bar" width={1240} height={720}>
+            <AppFrame theme="light"
+              layer={{ sidebar: true, tabs: true, statusBar: true, spine: false, margins: false }} />
+          </DCArtboard>
+
+          <DCArtboard id="l3" label="L3 · Studio — full apparatus" width={1240} height={720}>
+            <AppFrame theme="light"
+              layer={{ sidebar: true, tabs: true, statusBar: true, spine: true, margins: true }} />
+          </DCArtboard>
+
+        </DCSection>
+
+        <DCSection id="workspace" title="The editor in depth"
+          subtitle="Variations on the writing surface.">
+
+          <DCArtboard id="dark"   label="Editor (dark) · L3" width={1240} height={800}>
+            <AppFrame theme="dark" />
+          </DCArtboard>
+
+          <DCArtboard id="split"  label="Split — backlinks &amp; outline" width={1240} height={800}>
+            <AppFrame theme="light" splitPane />
+          </DCArtboard>
+
+          <DCArtboard id="focus"  label="Focus mode — typewriter, dimmed paragraphs" width={1000} height={800}>
+            <AppFrame theme="light" focusMode currentLine={4} />
+          </DCArtboard>
+
+        </DCSection>
+
+        <DCSection id="search" title="Search &amp; navigation"
+          subtitle="Three overlays for three speeds: palette, switcher, search. Available at every layer.">
+
+          <DCArtboard id="palette" label="Command palette · ⌘K" width={1240} height={800}>
+            <AppFrame theme="light" showCaret={false}>
+              <CommandPalette />
+            </AppFrame>
+          </DCArtboard>
+
+          <DCArtboard id="switcher" label="Quick switcher · ⌘P" width={1240} height={800}>
+            <AppFrame theme="dark" showCaret={false}>
+              <QuickSwitcher />
+            </AppFrame>
+          </DCArtboard>
+
+          <DCArtboard id="search-panel" label="Full-text search · ⌘F" width={1240} height={800}>
+            <AppFrame theme="light" showCaret={false}>
+              <SearchPanel />
+            </AppFrame>
+          </DCArtboard>
+
+          <DCArtboard id="wikilink" label="Wikilink autocomplete (inline)" width={1240} height={800}>
+            <AppFrame theme="light" showCaret={false}>
+              <WikiPopover left={355} top={398} />
+            </AppFrame>
+          </DCArtboard>
+
+        </DCSection>
+
+        <DCSection id="settings" title="Settings"
+          subtitle="A single searchable page with live previews — not a menu maze.">
+
+          <DCArtboard id="settings-layers" label="Layers — the centerpiece" width={1240} height={800}>
+            <SettingsFrame theme="light" view="layers" />
+          </DCArtboard>
+
+          <DCArtboard id="settings-search" label="Search-first overview" width={1240} height={800}>
+            <SettingsFrame theme="light" view="overview" />
+          </DCArtboard>
+
+          <DCArtboard id="settings-appearance" label="Appearance &amp; type — live preview" width={1240} height={800}>
+            <SettingsFrame theme="light" view="appearance" />
+          </DCArtboard>
+
+          <DCArtboard id="settings-keymap" label="Keyboard shortcuts" width={1240} height={800}>
+            <SettingsFrame theme="dark" view="keymap" />
+          </DCArtboard>
+
+        </DCSection>
+
+        <DCSection id="explorer" title="First run &amp; empty states"
+          subtitle="A fresh vault should welcome you, not interrogate you.">
+
+          <DCArtboard id="first-run" label="First launch — L0 with an empty vault" width={1000} height={720}>
+            <AppFrame theme="light" emptyTree showCaret={false}
+              layer={{ sidebar: false, tabs: false, statusBar: false, spine: false, margins: false }}
+              file="welcome.md" />
+          </DCArtboard>
+
+          <DCArtboard id="empty-vault" label="Empty vault — L1" width={1240} height={800}>
+            <AppFrame theme="light" emptyTree showCaret={false}
+              layer={{ sidebar: true, tabs: false, statusBar: false, spine: false, margins: false }} />
+          </DCArtboard>
+
+        </DCSection>
+
+        <DCSection id="system" title="Design system"
+          subtitle="The vocabulary that holds it together.">
+
+          <DCArtboard id="type"    label="Type"        width={520} height={620}><TypeCard /></DCArtboard>
+          <DCArtboard id="color"   label="Color"       width={520} height={620}><ColorCard /></DCArtboard>
+          <DCArtboard id="comps"   label="Components"  width={520} height={620}><ComponentsCard /></DCArtboard>
+          <DCArtboard id="space"   label="Spacing &amp; rhythm" width={520} height={620}><SpacingCard /></DCArtboard>
+
+        </DCSection>
+
+      </DesignCanvas>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection label="System">
+          <div className="twk-row">
+            <div className="twk-lbl"><span>Accent</span>
+              <span className="twk-val">{t.accent}</span>
+            </div>
+            <div className="twk-chips" role="radiogroup">
+              {Object.entries(ACCENT_MAP).map(([k, c]) => (
+                <button key={k} type="button" className="twk-chip"
+                  data-on={k === t.accent ? '1' : '0'}
+                  style={{ background: c }}
+                  onClick={() => setTweak('accent', k)} />
+              ))}
+            </div>
+          </div>
+          <TweakRadio
+            label="Font family"
+            value={t.fontFamily}
+            options={[
+              { value: 'serif', label: 'Serif' },
+              { value: 'sans',  label: 'Sans'  },
+              { value: 'mono',  label: 'Mono'  },
+            ]}
+            onChange={(v) => setTweak('fontFamily', v)}
+          />
+          <TweakSelect
+            label="Background warmth"
+            value={t.bgWarmth}
+            options={[
+              { value: 'paper',   label: 'Paper — warm white' },
+              { value: 'neutral', label: 'Neutral — pure gray' },
+              { value: 'arctic',  label: 'Arctic — cool blue' },
+            ]}
+            onChange={(v) => setTweak('bgWarmth', v)}
+          />
+        </TweakSection>
+
+        <TweakSection label="Workspace">
+          <TweakSlider
+            label="Editor width"
+            value={t.editorWidth}
+            min={560} max={880} step={20} unit="px"
+            onChange={(v) => setTweak('editorWidth', v)}
+          />
+          <TweakRadio
+            label="Sidebar density"
+            value={t.sidebarDensity}
+            options={[
+              { value: 'compact', label: 'Compact' },
+              { value: 'regular', label: 'Regular' },
+              { value: 'comfy',   label: 'Comfy'   },
+            ]}
+            onChange={(v) => setTweak('sidebarDensity', v)}
+          />
+        </TweakSection>
+      </TweaksPanel>
+    </>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

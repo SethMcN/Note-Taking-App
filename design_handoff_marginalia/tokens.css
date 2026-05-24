@@ -1,0 +1,135 @@
+/* Marginalia design tokens — drop into src/lib/styles/tokens.css
+ *
+ * Apply [data-theme="light"] or [data-theme="dark"] on <html>.
+ * For warmth & accent variants, override on :root from JS (see 05_tauri_stack.md).
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+/* In production: bundle these as woff2 with @font-face — do not load from Google at runtime. */
+
+:root {
+  /* Fonts */
+  --font-serif: 'Newsreader', Charter, 'Iowan Old Style', Georgia, serif;
+  --font-sans:  'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:  'Geist Mono', ui-monospace, 'JetBrains Mono', Menlo, monospace;
+  --font-editor: var(--font-serif);
+
+  /* Type scale */
+  --t-h1: 600 34px/1.18 var(--font-serif);
+  --t-h2: 600 22px/1.3  var(--font-serif);
+  --t-h3: 600 17px/1.4  var(--font-serif);
+  --t-body: 400 17.5px/1.62 var(--font-serif);
+  --t-code: 400 13px/1.55 var(--font-mono);
+  --t-ui:   400 13px/1.5 var(--font-sans);
+  --t-ui-sm: 400 12px/1.5 var(--font-sans);
+  --t-caption: 400 11px/1.45 var(--font-mono);
+  --t-mono-sm: 400 10.5px/1.4 var(--font-mono);
+
+  /* Spacing scale (4px base) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+
+  /* Radius */
+  --r-xs: 3px;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+
+  /* Controls */
+  --h-btn: 28px;
+  --h-input: 26px;
+  --h-tab: 32px;
+  --h-titlebar: 36px;
+  --h-statusbar: 24px;
+
+  /* Accent (default terracotta) */
+  --accent: oklch(0.62 0.13 35);
+  --accent-soft: oklch(0.62 0.13 35 / 0.12);
+  --accent-line: oklch(0.62 0.13 35 / 0.35);
+
+  /* Density (overridden by settings) */
+  --editor-width: 680px;
+  --sidebar-row-h: 26px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --d-fast: 120ms;
+  --d-normal: 150ms;
+  --d-slow: 200ms;
+}
+
+/* ── Light theme (paper warmth default) ── */
+[data-theme="light"] {
+  --bg:           oklch(0.985 0.004 80);
+  --bg-2:         oklch(0.975 0.004 80);
+  --bg-3:         oklch(0.96 0.004 80);
+  --bg-titlebar:  oklch(0.97 0.004 80);
+  --bg-hover:     oklch(0.94 0.004 80);
+  --bg-active:    oklch(0.92 0.005 35 / 0.6);
+
+  --fg:           oklch(0.21 0.01 80);
+  --fg-2:         oklch(0.42 0.008 80);
+  --fg-3:         oklch(0.58 0.008 80);
+  --fg-4:         oklch(0.72 0.006 80);
+
+  --line:         oklch(0.21 0.01 80 / 0.08);
+  --line-strong:  oklch(0.21 0.01 80 / 0.14);
+
+  --selection:    oklch(0.62 0.13 35 / 0.18);
+  --highlight:    oklch(0.92 0.07 90);
+
+  --shadow-sm: 0 1px 0 oklch(0.21 0.01 80 / 0.04);
+  --shadow-md: 0 8px 32px oklch(0.21 0.01 80 / 0.08), 0 1px 0 oklch(0.21 0.01 80 / 0.04);
+  --shadow-lg: 0 20px 64px oklch(0.21 0.01 80 / 0.18), 0 2px 0 oklch(0.21 0.01 80 / 0.06);
+
+  --syn-kw:  oklch(0.45 0.13 280);
+  --syn-str: oklch(0.5  0.09 145);
+  --syn-num: oklch(0.55 0.13 35);
+  --syn-cmt: oklch(0.62 0.008 80);
+  --syn-fn:  oklch(0.5  0.11 240);
+}
+
+/* ── Dark theme (paper warmth default) ── */
+[data-theme="dark"] {
+  --bg:           oklch(0.18 0.008 60);
+  --bg-2:         oklch(0.165 0.008 60);
+  --bg-3:         oklch(0.22 0.008 60);
+  --bg-titlebar:  oklch(0.21 0.008 60);
+  --bg-hover:     oklch(0.24 0.008 60);
+  --bg-active:    oklch(0.28 0.02 35 / 0.6);
+
+  --fg:           oklch(0.92 0.006 250);
+  --fg-2:         oklch(0.68 0.008 250);
+  --fg-3:         oklch(0.54 0.008 250);
+  --fg-4:         oklch(0.42 0.008 250);
+
+  --line:         oklch(0.92 0.006 250 / 0.08);
+  --line-strong:  oklch(0.92 0.006 250 / 0.14);
+
+  --selection:    oklch(0.62 0.13 35 / 0.28);
+  --highlight:    oklch(0.32 0.07 90);
+
+  --shadow-sm: 0 1px 0 oklch(0 0 0 / 0.3);
+  --shadow-md: 0 8px 32px oklch(0 0 0 / 0.4);
+  --shadow-lg: 0 20px 64px oklch(0 0 0 / 0.5), 0 2px 0 oklch(0 0 0 / 0.3);
+
+  --syn-kw:  oklch(0.74 0.13 290);
+  --syn-str: oklch(0.78 0.13 145);
+  --syn-num: oklch(0.78 0.13 35);
+  --syn-cmt: oklch(0.5  0.008 250);
+  --syn-fn:  oklch(0.78 0.11 230);
+}
+
+/* Sensible defaults */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%;
+  background: var(--bg); color: var(--fg);
+  font: var(--t-ui);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01'; }
